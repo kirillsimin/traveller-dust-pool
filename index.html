@@ -25,6 +25,10 @@
             background: #ffcc80;
             color: #222;
         }
+        button:disabled {
+            background: #a9a9a9;
+            cursor: not-allowed;
+        }
         #depth-history, #warnings {
             border: 1px solid #fff;
             padding: 10px;
@@ -49,15 +53,16 @@
 </head>
 <body>
     <h1>Traveller RPG - Dust Pool Encounter</h1>
-    <button onclick="rollDepth()">Drive ATV blind</button>
-    <button onclick="scoutPath()">Send Personnel Ahead</button>
+    <button id="driveButton" onclick="rollDepth()">Drive ATV blind</button>
+    <button id="scoutButton" onclick="scoutPath()">Send Personnel Ahead</button>
     <h2>Depth History</h2>
     <div id="depth-history">0</div>
-    <h2>Warnings</h2>
+    <h2>Info</h2>
     <div id="warnings"></div>
 
     <script>
         let depth = 0;
+        let wasInPool = false;
         let previousDepths = [0];
         let jolts = 0;
         let stuckAttempts = 0;
@@ -69,14 +74,23 @@
             document.getElementById("depth-history").textContent = previousDepths.join(" → ");
         }
 
+        function disableButtons() {
+            document.getElementById("driveButton").disabled = true;
+            document.getElementById("scoutButton").disabled = true;
+        }
+
         function updateWarnings() {
             let warnings = [];
             if (depth >= 5) warnings.push("The ATV is completely submerged.");
-            if (depth >= 2) warnings.push("Depth over head height.");
+            if (depth >= 2 && depth < 5) warnings.push("Depth over head height.");
             if (jolts > 0) warnings.push(`Jolts received: ${jolts}`);
             if (jolts >= 4) warnings.push("Vehicle malfunction! Requires repairs.");
             if (consecutiveThreeMeterIncreases >= 3) warnings.push("The ATV is stuck! Requires an hour of work to free it.");
             if (consecutiveScoutingAttempts > 0 && consecutiveScoutingAttempts % 2 === 0) warnings.push("Check for suit malfunction. 10 + to avoid. DM + triple vacc suit.");
+            if (depth === 0 && wasInPool) {
+                warnings.push("You're out of the dust pool");
+                disableButtons();
+            }
 
             document.getElementById("warnings").innerHTML = warnings.join("<br>");
         }
@@ -85,10 +99,12 @@
             return Math.floor(Math.random() * 6) + 1;
         }
 
-        function rollDepth() {
-            let change = rollD6() - 3;
-            change = Math.max(0, change);
-            consecutiveScoutingAttempts = 0;
+        function adjustDepth(change, resetScouting) {
+            if (resetScouting) {
+                consecutiveScoutingAttempts = 0;
+            } else {
+                consecutiveScoutingAttempts++;
+            }
 
             if (change === 3) {
                 consecutiveThreeMeterIncreases++;
@@ -108,42 +124,23 @@
                 }
             }
 
+            if (depth > 0) wasInPool = true;
             previousDepths.push(depth);
             updateDepthHistory();
-
-            if (change === 3) {
-                jolts++;
-            }
             updateWarnings();
+        }
+
+        function rollDepth() {
+            let change = Math.max(0, rollD6() - 3);
+            if (increasing && change === 3) jolts++;
+            adjustDepth(change, true);
         }
 
         function scoutPath() {
-            let change = rollD6() - 4;
-            change = Math.max(0, change);
-            consecutiveScoutingAttempts++;
-
-            if (change === 3) {
-                consecutiveThreeMeterIncreases++;
-                if (consecutiveThreeMeterIncreases >= 3) return;
-            } else {
-                consecutiveThreeMeterIncreases = 0;
-            }
-
-            if (increasing) {
-                depth += change;
-                if (depth >= 4) increasing = false;
-            } else {
-                depth -= change;
-                if (depth <= 0) {
-                    depth = 0;
-                    increasing = true;
-                }
-            }
-
-            previousDepths.push(depth);
-            updateDepthHistory();
-            updateWarnings();
+            let change = Math.max(0, rollD6() - 4);
+            adjustDepth(change, false);
         }
+
     </script>
 </body>
 </html>
