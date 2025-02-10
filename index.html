@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traveller RPG - Dust Pool Encounter</title>
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #f4a460;
+            color: #222;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            background: #d2691e;
+            color: #fff;
+            border: 1px solid #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ffcc80;
+            color: #222;
+        }
+        #depth-history, #warnings {
+            border: 1px solid #fff;
+            padding: 10px;
+            height: auto;
+            min-height: 30px;
+            background: #ffebcd;
+            color: #222;
+            font-family: 'Courier New', monospace;
+            text-align: left;
+            margin: 10px auto;
+            width: 80%;
+        }
+        h1 {
+            font-size: 24px;
+            border-bottom: 2px solid #fff;
+            display: inline-block;
+            padding-bottom: 5px;
+            color: #8b4513;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Traveller RPG - Dust Pool Encounter</h1>
+    <button onclick="rollDepth()">Drive ATV blind</button>
+    <button onclick="scoutPath()">Send Personnel Ahead</button>
+    <h2>Depth History</h2>
+    <div id="depth-history">0</div>
+    <h2>Warnings</h2>
+    <div id="warnings"></div>
+
+    <script>
+        let depth = 0;
+        let previousDepths = [0];
+        let jolts = 0;
+        let stuckAttempts = 0;
+        let increasing = true;
+        let consecutiveThreeMeterIncreases = 0;
+        let consecutiveScoutingAttempts = 0;
+
+        function updateDepthHistory() {
+            document.getElementById("depth-history").textContent = previousDepths.join(" → ");
+        }
+
+        function updateWarnings() {
+            let warnings = [];
+            if (depth >= 5) warnings.push("The ATV is completely submerged.");
+            if (depth >= 2) warnings.push("Depth over head height.");
+            if (jolts > 0) warnings.push(`Jolts received: ${jolts}`);
+            if (jolts >= 4) warnings.push("Vehicle malfunction! Requires repairs.");
+            if (consecutiveThreeMeterIncreases >= 3) warnings.push("The ATV is stuck! Requires an hour of work to free it.");
+            if (consecutiveScoutingAttempts > 0 && consecutiveScoutingAttempts % 2 === 0) warnings.push("Check for suit malfunction. 10 + to avoid. DM + triple vacc suit.");
+
+            document.getElementById("warnings").innerHTML = warnings.join("<br>");
+        }
+
+        function rollD6() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function rollDepth() {
+            let change = rollD6() - 3;
+            change = Math.max(0, change);
+            consecutiveScoutingAttempts = 0;
+
+            if (change === 3) {
+                consecutiveThreeMeterIncreases++;
+                if (consecutiveThreeMeterIncreases >= 3) return;
+            } else {
+                consecutiveThreeMeterIncreases = 0;
+            }
+
+            if (increasing) {
+                depth += change;
+                if (depth >= 4) increasing = false;
+            } else {
+                depth -= change;
+                if (depth <= 0) {
+                    depth = 0;
+                    increasing = true;
+                }
+            }
+
+            previousDepths.push(depth);
+            updateDepthHistory();
+
+            if (change === 3) {
+                jolts++;
+            }
+            updateWarnings();
+        }
+
+        function scoutPath() {
+            let change = rollD6() - 4;
+            change = Math.max(0, change);
+            consecutiveScoutingAttempts++;
+
+            if (change === 3) {
+                consecutiveThreeMeterIncreases++;
+                if (consecutiveThreeMeterIncreases >= 3) return;
+            } else {
+                consecutiveThreeMeterIncreases = 0;
+            }
+
+            if (increasing) {
+                depth += change;
+                if (depth >= 4) increasing = false;
+            } else {
+                depth -= change;
+                if (depth <= 0) {
+                    depth = 0;
+                    increasing = true;
+                }
+            }
+
+            previousDepths.push(depth);
+            updateDepthHistory();
+            updateWarnings();
+        }
+    </script>
+</body>
+</html>
